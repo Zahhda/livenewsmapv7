@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin • Live News Map</title>
+  <link rel="icon" type="image/png" href="/img/favicon.png" />
+  <link rel="apple-touch-icon" href="/img/favicon.png" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- ML Update Notification -->
+  <div id="mlUpdateNotification" class="ml-update-notification" style="display:none; background:linear-gradient(135deg, #ff6b35, #f7931e); border:1px solid #ff8c42; color:#fff; padding:12px 16px; margin:0; border-radius:0; box-shadow:0 2px 10px rgba(255,107,53,0.3);">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <div>
+          <div style="font-weight:600; font-size:16px;">New Data Present - ML Model Update Required</div>
+          <div style="font-size:14px; opacity:0.9;">Please update ML model v5.6 to improve the application. Data has been available for <span id="daysSinceUpdate">0</span> days.</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button id="viewMLModelBtn" class="btn" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:6px 12px; font-size:12px;">View Model</button>
+        <button id="dismissNotificationBtn" class="btn" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:6px 12px; font-size:12px;">Dismiss</button>
+        <button id="closeNotificationBtn" style="background:none; border:none; color:#fff; font-size:18px; cursor:pointer; padding:0; width:24px; height:24px; display:flex; align-items:center; justify-content:center;">×</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON Data Alert -->
+  <div id="jsonDataAlert" class="json-data-alert" style="display:none; background:linear-gradient(135deg, #151515 0%, #1a1a1a 100%); border:2px solid #e10600; color:#eaeaea; padding:16px 20px; margin:0; border-radius:0; box-shadow:0 4px 20px rgba(225,6,0,0.3); animation: slideDown 0.5s ease-out;">
+    <div style="display:flex; align-items:center; justify-content:space-between; max-width:1400px; margin:0 auto;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div style="background:linear-gradient(135deg, #e10600, #ff2020); border-radius:50%; width:48px; height:48px; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 4px 12px rgba(225,6,0,0.4);">
+          📊
+        </div>
+        <div>
+          <div style="font-weight:700; font-size:18px; margin-bottom:4px; letter-spacing:-0.5px; color:#eaeaea;">New JSON Data Available</div>
+          <div style="font-size:14px; opacity:0.8; line-height:1.4; color:#9a9a9a;">Please train the model to improve application performance. Fresh classification data with regions, links, and status information is ready.</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button id="viewJsonDataBtn" class="btn" style="background:linear-gradient(135deg, #e10600, #ff2020); border:none; color:#fff; padding:10px 20px; font-size:14px; font-weight:600; border-radius:8px; cursor:pointer; transition:all 0.3s ease; box-shadow:0 2px 8px rgba(225,6,0,0.3);">
+          <span style="margin-right:6px;">📥</span> View JSON
+        </button>
+        <button id="dismissJsonAlert" style="background:rgba(255,255,255,0.1); border:1px solid #2a2a2a; color:#9a9a9a; padding:8px 12px; font-size:12px; border-radius:6px; cursor:pointer; transition:all 0.2s ease;">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    @keyframes slideDown {
+      from {
+        transform: translateY(-100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes pulseGlow {
+      0%, 100% {
+        box-shadow: 0 2px 8px rgba(225,6,0,0.3);
+      }
+      50% {
+        box-shadow: 0 4px 16px rgba(225,6,0,0.5);
+      }
+    }
+    
+    #viewJsonDataBtn:hover {
+      background:linear-gradient(135deg, #ff2020, #e10600) !important;
+      transform:translateY(-2px);
+      animation: pulseGlow 2s infinite;
+    }
+    
+    #viewJsonDataBtn:active {
+      transform:translateY(0);
+    }
+    
+    #dismissJsonAlert:hover {
+      background:rgba(255,255,255,0.15) !important;
+      border-color:#e10600 !important;
+      color:#eaeaea !important;
+    }
+    
+    @keyframes slideUp {
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-20px); opacity: 0; }
+    }
+  </style>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <span style="font-weight:600">Admin Panel</span>
+
+    <div id="adminTabs" style="display:inline-flex;gap:8px;margin-left:16px;">
+      <a href="/admin" data-tab="regions" style="text-decoration:none;background:#111;border:1px solid var(--border);padding:8px 10px;border-radius:10px;color:inherit">Regions</a>
+      <a href="/admin/users" data-tab="users" style="text-decoration:none;background:#0b0b0b;border:1px solid var(--border);padding:8px 10px;border-radius:10px;color:var(--muted)">Users</a>
+    </div>
+
+    <!-- Token gate -->
+    <input id="tokenInput" type="text" placeholder="Enter admin token"
+           style="width:260px;" />
+    <button id="saveTokenBtn" class="primary">Use Token</button>
+
+    <!-- Status capsule (will turn green when verified) -->
+    <span id="tokenStatus"
+          class="token-badge"
+          style="display:inline-flex; align-items:center; gap:6px;">
+      Not verified
+    </span>
+
+    <a href="/" style="margin-left:auto;color:#fff;text-decoration:none;">← Back</a>
+  </div>
+
+  <!-- Gate hint (shown until verified) -->
+  <div id="gateNotice"
+       style="padding:14px; border-bottom:1px dashed var(--border); color:var(--muted);">
+    Enter a valid admin token to unlock the admin interface.
+  </div>
+
+  <!-- Main two-column layout: 30% editor (left), 70% list (right) -->
+  <!-- Hidden by default; shown after token verification -->
+  <div id="adminLayout"
+       style="display:none; gap:12px; padding:12px; align-items:flex-start;">
+
+    <!-- LEFT: Create / Edit Region (30%) -->
+    <div style="flex:0 0 30%; border:1px solid var(--border); border-radius:12px;
+                padding:12px; background:#0f0f0f;">
+      <h3 style="margin:0 0 10px 0;">Create / Edit Region</h3>
+
+      <form id="regionForm">
+        <input type="hidden" id="regionId" />
+
+        <div style="display:grid; grid-template-columns:1fr; gap:8px;">
+          <label style="font-size:12px; color:var(--muted);">Name</label>
+          <input style="padding: 6px!important;" id="name" placeholder="Region name" required />
+
+          <label style="font-size:12px; color:var(--muted);">Country</label>
+          <input style="padding: 6px!important;" id="country" placeholder="Country (e.g., Ukraine)" required />
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <div>
+              <label style="font-size:12px; color:var(--muted);">Latitude</label>
+              <input style="padding: 6px!important;" id="lat" type="number" step="any" placeholder="e.g., 50.45" required />
+            </div>
+            <div>
+              <label style="font-size:12px; color:var(--muted);">Longitude</label>
+              <input style="padding: 6px!important;" id="lng" type="number" step="any" placeholder="e.g., 30.52" required />
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:12px;">Feeds</div>
+        <div id="feedsWrap"></div>
+        <button type="button" id="addFeedBtn" style="margin:6px 0;">+ Add Feed</button>
+
+        <!-- RSS Validation Alert -->
+        <div id="rssAlert" class="rss-alert" style="display:none; margin:12px 0; padding:12px; background:linear-gradient(135deg, #ff6b35, #f7931e); border:1px solid #ff8c42; border-radius:8px; color:#fff;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span style="font-weight:600;">RSS Feed Validation Required</span>
+          </div>
+          <div style="font-size:14px; opacity:0.9;" id="rssAlertText">
+            Please validate all RSS feeds before saving. Invalid feeds will be highlighted in red.
+          </div>
+        </div>
+
+        <!-- Action Buttons Row -->
+        <div class="action-buttons-row" style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; align-items:center;">
+          <button class="primary" type="submit" style="flex:1; min-width:120px;">Save Region</button>
+          <button type="button" id="validateAllBtn" class="btn btn-validate" style="flex:1; min-width:120px;">Validate All Feeds</button>
+          <button type="button" id="resetBtn" class="btn" style="flex:1; min-width:120px;">Reset</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- RIGHT: Regions (70%) -->
+    <div style="flex:1; border:1px solid var(--border); border-radius:12px;
+                padding:12px; background:#0f0f0f;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+        <h3 style="margin:0;">Regions</h3>
+        <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+          <span class="small" style="color:var(--muted);">Filter by country:</span>
+          <select id="countryFilter" style="min-width:180px;">
+            <option value="__ALL__">All countries</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Regions Overview Row -->
+      <div id="regionsOverview" class="regions-overview" style="margin-bottom:16px; padding:12px; background:#1a1a1a; border:1px solid #333; border-radius:8px; display:none;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#ff6b35;">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span style="font-weight:600; color:#fff;">Regions RSS Status Overview</span>
+          </div>
+          <button id="refreshRegionsBtn" class="btn btn-small regions-refresh-btn" style="padding:4px 8px; font-size:12px; background:#333; border:1px solid #555; color:#fff; position:relative; overflow:hidden;">
+            <div class="regions-refresh-content">
+              <svg class="regions-refresh-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px;">
+                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+              </svg>
+              <span class="regions-refresh-text">Refresh</span>
+            </div>
+            <div class="regions-refresh-loader" style="display:none;">
+              <div class="regions-spinner"></div>
+              <span class="regions-refresh-text">Validating...</span>
+            </div>
+          </button>
+        </div>
+        <div id="regionsOverviewContent" class="regions-overview-content" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <!-- Regions will be populated here -->
+        </div>
+      </div>
+
+      <div id="regionsList"></div>
+    </div>
+  </div>
+
+  <!-- ML Model Viewer Modal -->
+  <div id="mlModelModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; overflow-y:auto;">
+    <div class="modal-content" style="background:#111; margin:20px auto; max-width:90%; max-height:90%; border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+      <div class="modal-header" style="padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+        <h3 style="margin:0; color:#fff;">ML Model Viewer v5.6</h3>
+        <button id="closeMLModal" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer; padding:0; width:30px; height:30px; display:flex; align-items:center; justify-content:center;">×</button>
+      </div>
+      <div class="modal-body" style="padding:20px; max-height:70vh; overflow-y:auto;">
+        <div id="mlModelPasswordForm" style="margin-bottom:20px;">
+          <div style="margin-bottom:12px;">
+            <label style="display:block; margin-bottom:6px; color:var(--muted); font-size:14px;">Enter password to view ML model data:</label>
+            <input id="mlPasswordInput" type="password" placeholder="Enter ML model password" style="width:100%; padding:8px 12px; background:#222; border:1px solid var(--border); border-radius:6px; color:#fff; font-size:14px;" />
+          </div>
+          <button id="loadMLModelBtn" class="btn primary" style="padding:8px 16px;">Load Model Data</button>
+        </div>
+        <div id="mlModelContent" style="display:none;">
+          <pre id="mlModelJson" style="background:#0a0a0a; border:1px solid #333; border-radius:8px; padding:16px; color:#00ff00; font-family:'Courier New', monospace; font-size:12px; line-height:1.4; overflow-x:auto; white-space:pre-wrap; word-wrap:break-word;"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JSON Data Popup Modal -->
+  <div id="jsonDataModal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:10000;animation:fadeIn 0.3s ease-out">
+    <div class="modal-content" style="background:#0b0b0b;border:2px solid #667eea;border-radius:16px;width:95vw;max-width:1400px;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(102,126,234,0.3);animation:slideUp 0.3s ease-out">
+      <div class="modal-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;border-bottom:2px solid #667eea;padding-bottom:16px">
+        <h2 style="color:#fff;margin:0;font-size:26px;font-weight:700;letter-spacing:-0.5px">
+          <span style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">📊 JSON Data - Regions & Classification</span>
+        </h2>
+        <button id="closeJsonModal" style="background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:24px;cursor:pointer;padding:4px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:8px;transition:all 0.2s ease">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="json-info" style="background:linear-gradient(135deg, rgba(102,126,234,0.1) 0%, rgba(118,75,162,0.1) 100%);border:1px solid rgba(102,126,234,0.3);border-radius:12px;padding:18px;margin-bottom:24px">
+          <div style="color:#667eea;font-size:15px;margin-bottom:10px;font-weight:600">📋 Data Information</div>
+          <div style="color:#ddd;font-size:14px;line-height:1.6">
+            • Complete regions data with classification accuracy<br>
+            • RSS feed status (working/non-working)<br>
+            • Category distribution and performance metrics<br>
+            • Ready to train your model
+          </div>
+        </div>
+        
+        <div class="json-controls" style="margin-bottom:24px;display:flex;gap:12px;align-items:center">
+          <button id="copyJsonData" class="btn" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;padding:12px 24px;border:none;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600;box-shadow:0 4px 12px rgba(102,126,234,0.4);transition:all 0.3s ease">
+            <span id="copyJsonText">📋 Copy JSON Data</span>
+            <span id="copyJsonLoading" style="display:none">⏳ Copying...</span>
+          </button>
+          <div id="jsonStatus" style="color:#888;font-size:14px;font-weight:500"></div>
+        </div>
+        
+        <div id="jsonDataPreview" style="background:#111;border:1px solid rgba(102,126,234,0.3);border-radius:12px;padding:18px;max-height:500px;overflow-y:auto">
+          <div style="color:#fff;font-weight:600;margin-bottom:12px;font-size:15px">JSON Data Preview:</div>
+          <pre id="jsonDataContent" style="color:#ddd;font-size:12px;white-space:pre-wrap;margin:0;background:#0b0b0b;padding:12px;border-radius:8px;border:1px solid #333;line-height:1.5"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    #closeJsonModal:hover {
+      background:rgba(255,255,255,0.2) !important;
+      transform:rotate(90deg);
+    }
+    
+    #copyJsonData:hover {
+      transform:translateY(-2px);
+      box-shadow:0 6px 16px rgba(102,126,234,0.5) !important;
+    }
+    
+    #copyJsonData:active {
+      transform:translateY(0);
+    }
+  </style>
+
+  <!-- Toast -->
+  <div id="toast"
+       style="position:fixed; right:16px; bottom:16px; padding:10px 14px;
+              background:#111; border:1px solid var(--border); border-left:4px solid var(--accent);
+              color:var(--text); border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,.35);
+              font-size:14px; opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+              transform:translateY(8px); z-index:9999;"></div>
+
+  <script src="/admin.js" type="module"></script>
+<script>document.querySelector('#adminTabs a[data-tab="regions"]').style.background='#111';document.querySelector('#adminTabs a[data-tab="regions"]').style.color='inherit';</script>
+</body>
+</html>
